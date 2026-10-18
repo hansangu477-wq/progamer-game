@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>프로게이머 키우기 - 브라우저로 즐기는 e스포츠 육성 시뮬레이션</title>
+  <meta name="description" content="15세 아마추어에서 시작해 아카데미, 프로, MSI와 월드 챔피언십까지. 훈련하고 계약하고 우승을 노리는 프로게이머 육성 웹게임입니다. (리그 오브 레전드 팬 프로젝트)">
+  <meta name="theme-color" content="#121528">
+  <meta name="color-scheme" content="light dark">
+  <script>try{var t=localStorage.getItem("pg-theme");if(!t)t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="dark"}</script>
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="프로게이머 키우기">
+  <meta property="og:description" content="15세 아마추어에서 프로 무대와 월드 챔피언십까지, 브라우저로 즐기는 프로게이머 육성 시뮬레이션.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23121528'/%3E%3Crect x='8' y='8' width='24' height='24' fill='%23ffd23f'/%3E%3Crect x='12' y='12' width='16' height='16' fill='%231e2342'/%3E%3Crect x='16' y='16' width='8' height='8' fill='%234cc9ff'/%3E%3C/svg%3E">
+  <!-- Google Search Console / 네이버 서치어드바이저의 소유 확인 메타 태그가 있다면 여기에 붙여 넣으세요 -->
+  <!-- 도트 폰트(갈무리). 불러오지 못해도 기본 글꼴로 정상 동작합니다 -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-text">프로게이머 키우기</span></div>
+    <div class="top-right">
+      <button id="theme-btn" class="theme-btn" type="button" aria-label="화면 모드 전환">☾</button>
+      <div class="audio" id="audio">
+        <button id="bgm-btn" type="button">♪ BGM 켜기</button>
+        <input id="bgm-vol" type="range" min="0" max="100" value="35" aria-label="BGM 볼륨">
+      </div>
+    </div>
+  </header>
+
+  <main class="game">
+
+    <!-- 시작 화면 (2단계): 1) 소개 → 2) 이름·포지션 -->
+    <section id="start-screen" hidden>
+      <div class="start-page" id="start-intro">
+        <div class="hero px" aria-hidden="true">
+          <img id="hero-splash" alt="" hidden>
+          <svg class="hero-art" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="gB"><stop offset="0" stop-color="#4cc9ff" stop-opacity=".85"/><stop offset="1" stop-color="#4cc9ff" stop-opacity="0"/></radialGradient>
+            <radialGradient id="gR"><stop offset="0" stop-color="#ff5a4c" stop-opacity=".85"/><stop offset="1" stop-color="#ff5a4c" stop-opacity="0"/></radialGradient>
+            <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14354f"/><stop offset="1" stop-color="#0b1622"/></linearGradient>
+          </defs>
+          <g fill="#e6e0cf" opacity=".65">
+            <circle cx="28" cy="20" r="1"/><circle cx="90" cy="38" r="1.2"/><circle cx="150" cy="14" r="1"/><circle cx="215" cy="30" r="1.3"/>
+            <circle cx="270" cy="12" r="1"/><circle cx="330" cy="34" r="1.2"/><circle cx="378" cy="18" r="1"/><circle cx="55" cy="60" r="0.8"/>
+          </g>
+          <path d="M0 132 L48 98 L96 126 L150 82 L208 122 L266 88 L322 120 L372 94 L400 116 V200 H0Z" fill="#0f2740"/>
+          <path d="M0 152 Q200 120 400 152 V200 H0Z" fill="url(#gG)"/>
+          <path d="M150 200 Q200 158 250 200Z" fill="#1b7f96" opacity=".45"/>
+          <path d="M30 192 Q200 138 370 192" stroke="#c8aa6e" stroke-width="1" fill="none" stroke-dasharray="4 5" opacity=".6"/>
+          <path d="M60 170 Q200 128 340 170" stroke="#c8aa6e" stroke-width=".8" fill="none" stroke-dasharray="3 6" opacity=".4"/>
+          <g class="pulse"><circle cx="72" cy="128" r="42" fill="url(#gB)"/></g>
+          <polygon points="72,98 85,128 72,152 59,128" fill="#4cc9ff"/>
+          <polygon points="72,98 85,128 72,128" fill="#bff0ff" opacity=".7"/>
+          <rect x="108" y="138" width="8" height="22" fill="#2d6f92"/><polygon points="106,138 118,138 112,126" fill="#4cc9ff"/>
+          <g class="pulse p2"><circle cx="328" cy="128" r="42" fill="url(#gR)"/></g>
+          <polygon points="328,98 341,128 328,152 315,128" fill="#ff5a4c"/>
+          <polygon points="328,98 341,128 328,128" fill="#ffd2cc" opacity=".7"/>
+          <rect x="284" y="138" width="8" height="22" fill="#923d2d"/><polygon points="282,138 294,138 288,126" fill="#ff5a4c"/>
+          <g fill="none" stroke="#c8aa6e" stroke-width="1.4">
+            <polygon class="float" points="200,52 208,57 208,66 200,71 192,66 192,57"/>
+            <polygon class="float f2" points="160,76 165,79 165,85 160,88 155,85 155,79"/>
+            <polygon class="float f3" points="244,70 249,73 249,79 244,82 239,79 239,73"/>
+          </g>
+        </svg>
+          <canvas id="start-avatar" class="avatar hero-avatar" width="16" height="20"></canvas>
+        </div>
+
+        <h1 class="title">솔로랭크에서<br>월드 챔피언까지</h1>
+        <p class="sub">나만의 프로게이머 인생, 프로게이머 키우기.</p>
+        <div class="maker px" aria-label="제작자 H">
+          <span class="maker-k">MADE BY</span>
+          <strong class="maker-n">H</strong>
+          <span class="maker-s">제작자</span>
+        </div>
+
+        <button type="button" class="primary" id="begin-btn">▶ 시작하기</button>
+
+        <nav class="footnav" aria-label="바로가기">
+          <button type="button" data-open="guide">게임 가이드</button>
+          <button type="button" data-open="ach">업적</button>
+          <button type="button" data-open="backup">저장·불러오기</button>
+        </nav>
+        <p class="mini-legal">제작 <b>H</b> · 팬 프로젝트입니다. 게임 속 이름은 모두 가상이며 Riot Games와 무관해요. <button type="button" class="link-btn inline" data-open="guide">자세히</button></p>
+      </div>
+
+      <form id="start-form" class="start-page px panel-pad" hidden>
+        <label for="name-input">선수 이름</label>
+        <input id="name-input" maxlength="8" placeholder="예: 지훈" autocomplete="off" required>
+
+        <fieldset>
+          <legend>주 포지션 · 시작 능력치를 골라요</legend>
+          <label class="pos"><input type="radio" name="position" value="top" checked><span class="pos-name">탑</span><span class="pos-desc">라인전에 강함</span></label>
+          <label class="pos"><input type="radio" name="position" value="jungle"><span class="pos-name">정글</span><span class="pos-desc">판단력에 강함</span></label>
+          <label class="pos"><input type="radio" name="position" value="mid"><span class="pos-name">미드</span><span class="pos-desc">라인전과 판단력이 균형</span></label>
+          <label class="pos"><input type="radio" name="position" value="adc"><span class="pos-name">원딜</span><span class="pos-desc">한타에 강함</span></label>
+          <label class="pos"><input type="radio" name="position" value="support"><span class="pos-name">서포터</span><span class="pos-desc">판단력과 한타가 균형</span></label>
+        </fieldset>
+
+        <button type="submit" class="primary">▶ 데뷔하기</button>
+        <button type="button" class="link-btn center" id="start-back">← 처음으로</button>
+      </form>
+    </section>
+
+    <!-- 육성 화면: 상단 선수 카드 + 페이지(탭) 5개 -->
+    <div id="play-screen" hidden>
+
+      <section class="pcard px" id="pcard">
+        <div class="avatar-wrap"><canvas id="avatar" class="avatar" width="16" height="20" aria-hidden="true"></canvas></div>
+        <div class="pinfo">
+          <h1 id="player-name"></h1>
+          <p id="player-info"></p>
+          <div class="chips" id="chips"></div>
+        </div>
+      </section>
+
+      <section class="gameover px" id="gameover" hidden>
+        <h2 id="over-title"></h2>
+        <p id="over-text"></p>
+        <ul id="over-stats"></ul>
+        <button id="restart-btn" class="primary">새 선수로 다시 시작</button>
+      </section>
+
+      <!-- 이벤트는 어느 페이지에서든 팝업으로 -->
+      <section class="event px" id="event" hidden>
+        <h2 id="event-title"></h2>
+        <p id="event-text"></p>
+        <div id="event-choices"></div>
+      </section>
+
+      <div class="pages" id="pages">
+
+        <!-- 페이지 1: 육성 -->
+        <div class="tab-panel on" id="tab-home" role="tabpanel">
+          <section class="stats px" id="stats" aria-label="선수 능력치"></section>
+
+          <section class="career px" aria-label="커리어 목표">
+            <p id="career-goal"></p>
+            <p id="career-progress"></p>
+            <button id="test-btn" class="primary" hidden></button>
+          </section>
+
+          <h2 class="sec-label">이번 주 행동</h2>
+          <section class="actions" id="actions" aria-label="이번 주 훈련"></section>
+          <p class="lastlog px" id="last-log" hidden></p>
+        </div>
+
+        <!-- 페이지 2: 경기 -->
+        <div class="tab-panel" id="tab-match" role="tabpanel">
+          <section class="match px" id="match" hidden>
+            <h2 id="match-title"></h2>
+            <div class="vs" id="match-vs"></div>
+            <div class="rosters" id="match-rosters"></div>
+            <canvas id="minimap" width="400" height="400" aria-label="경기 미니맵"></canvas>
+            <h3 class="ev-head">경기 진행 <small>(최신 소식이 위에)</small></h3>
+            <ul id="match-events"></ul>
+          </section>
+          <p class="empty px">진행 중인 경기가 없어요.<br>경기 주간에 육성 화면의 <b>경기 진행</b> 버튼을 누르면 여기서 경기가 펼쳐져요.</p>
+          <div class="match-actions">
+            <button id="replay-btn" type="button" class="primary alt">↻ 다시 보기</button>
+            <button type="button" class="primary" data-goto="home">▶ 육성 화면으로</button>
+          </div>
+        </div>
+
+        <!-- 페이지 3: 선수 -->
+        <div class="tab-panel" id="tab-player" role="tabpanel">
+          <section class="champ px" id="champ-panel" aria-label="챔피언">
+            <img id="champ-img" alt="" width="48" height="48" hidden>
+            <div class="champ-info">
+              <strong id="champ-name"></strong>
+              <span id="champ-sub"></span>
+            </div>
+            <button id="champ-btn" class="link-btn"></button>
+          </section>
+
+          <section class="picker px" id="picker" hidden>
+            <input id="champ-search" type="search" placeholder="챔피언 이름 검색" autocomplete="off">
+            <label class="check"><input type="checkbox" id="champ-all"> 모든 챔피언 보기</label>
+            <p id="picker-msg"></p>
+            <div id="champ-grid"></div>
+          </section>
+
+          <section class="shop px" id="shop" hidden>
+            <h2>장비 상점 <span id="shop-money"></span></h2>
+            <ul id="shop-list"></ul>
+          </section>
+          <p class="empty px">장비 상점은 아카데미부터 열려요. 육성 화면의 <b>장비 상점</b> 버튼을 누르면 이 페이지에 나타나요.</p>
+        </div>
+
+        <!-- 페이지 4: 일정 · 대회 -->
+        <div class="tab-panel" id="tab-team" role="tabpanel">
+          <section class="calendar px" id="calendar" aria-label="일정">
+            <p id="cal-now"></p>
+            <ul id="cal-next"></ul>
+          </section>
+
+          <section class="team px" id="team" hidden>
+            <p class="team-head"><span id="team-logo"></span><strong id="team-name"></strong></p>
+            <p id="team-pay"></p>
+            <p id="team-mates"></p>
+          </section>
+
+          <section class="season px" id="season" hidden>
+            <p id="season-text"></p>
+          </section>
+
+          <section class="tourney px" id="tourney" hidden>
+            <h2 id="tourney-title"></h2>
+            <p id="tourney-next"></p>
+            <ul id="tourney-list"></ul>
+          </section>
+
+          <section class="patch px" id="patch" hidden>
+            <h2 id="patch-title"></h2>
+            <ul id="patch-list"></ul>
+          </section>
+
+          <section class="standings px" id="standings" hidden>
+            <h2 id="standings-title"></h2>
+            <ol id="standings-list"></ol>
+          </section>
+
+          <section class="history px" id="history" hidden>
+            <h2>시즌 기록</h2>
+            <ul id="history-list"></ul>
+          </section>
+        </div>
+
+        <!-- 페이지 5: 기록 · 메뉴 -->
+        <div class="tab-panel" id="tab-log" role="tabpanel">
+          <section class="log-wrap px">
+            <h2>훈련 기록</h2>
+            <ul id="log"></ul>
+          </section>
+
+          <nav class="menu-list" aria-label="메뉴">
+            <button type="button" data-open="ach">업적</button>
+            <button type="button" data-open="backup">저장·불러오기</button>
+            <button type="button" data-open="guide">게임 가이드</button>
+          </nav>
+
+          <div class="danger-row">
+            <button id="reset-btn" class="danger-btn">↺ 새 선수로 다시 시작</button>
+            <button id="retire-btn" class="danger-btn">은퇴 선언</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="tabbar" id="tabbar" aria-label="페이지">
+        <button type="button" class="on" data-tab="home"><i data-ico="home"></i><span>육성</span></button>
+        <button type="button" data-tab="match"><i data-ico="flag"></i><span>경기</span></button>
+        <button type="button" data-tab="player"><i data-ico="star"></i><span>선수</span></button>
+        <button type="button" data-tab="team"><i data-ico="trophy"></i><span>대회</span></button>
+        <button type="button" data-tab="log"><i data-ico="scroll"></i><span>기록</span></button>
+      </nav>
+    </div>
+  </main>
+
+  <!-- 팝업 페이지들 -->
+  <dialog id="guide" class="px guide">
+    <h2>게임 가이드</h2>
+    <p class="maker-line">제작자 <b>H</b></p>
+    <ol>
+      <li><b>한 주에 하나</b>씩 행동을 골라요. 솔로랭크·스크림·챔프 연습으로 능력치를 올리고, 휴식으로 체력과 멘탈을 채워요.</li>
+      <li><b>아마추어 → 아카데미 → 프로</b> 순서로 올라가요. 아카데미 입단은 종합 52, 프로 승격은 종합 72와 경기 성적이 필요해요.</li>
+      <li>아마추어는 <b>19세</b>, 아카데미는 <b>21세</b>까지 다음 단계에 오르지 못하면 커리어가 끝나요. 프로는 30세에 은퇴해요.</li>
+      <li><b>체력·멘탈</b>이 20 아래면 막대가 붉게 변해요. 무리하면 이벤트로 컨디션이 무너질 수 있어요.</li>
+      <li>경기에서는 <b>상대 선수의 실력</b>이 결과에 반영돼요. 같은 포지션끼리 맞붙는 라인전(⚔)과 팀 전체 실력이 모두 영향을 줘요.</li>
+      <li>프로가 되면 장비를 사고, MSI와 월드 챔피언십 우승에 도전해요.</li>
+      <li>하단 탭이나 화면을 좌우로 밀어 <b>페이지</b>를 넘길 수 있어요. 진행 상황은 이 브라우저에 자동 저장돼요.</li>
+    </ol>
+    <div class="legal">
+      <p>게임 속 선수·팀 이름은 모두 가상의 패러디이며 실제 인물·단체와 무관합니다.</p>
+      <p>이 게임은 Riot Games가 보증하거나 후원하지 않는 팬 프로젝트입니다.</p>
+      <p lang="en">This project was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc.</p>
+    </div>
+    <button type="button" class="primary" data-close>닫기</button>
+  </dialog>
+
+  <dialog id="ach" class="px guide">
+    <h2 id="ach-sum">업적</h2>
+    <ul id="ach-list"></ul>
+    <button type="button" class="primary" data-close>닫기</button>
+  </dialog>
+
+  <dialog id="backup" class="px guide">
+    <h2>저장 / 불러오기</h2>
+    <p id="save-status">진행 상황은 이 브라우저에 자동으로 저장돼요.</p>
+    <p class="hint">브라우저 데이터를 지우면 저장도 사라져요. 저장 코드를 보관해 두면 다른 기기에서도 이어할 수 있어요.</p>
+    <textarea id="save-code" rows="3" placeholder="저장 코드를 여기에 붙여넣고 불러오기를 누르세요"></textarea>
+    <div class="backup-row">
+      <button id="export-btn" type="button">저장 코드 만들기</button>
+      <button id="import-btn" type="button">불러오기</button>
+    </div>
+    <p id="backup-msg"></p>
+    <button type="button" class="primary" data-close>닫기</button>
+  </dialog>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="bgm.js"></script>
+  <script src="game.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
