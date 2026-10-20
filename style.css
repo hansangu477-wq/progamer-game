@@ -1015,3 +1015,76 @@ dialog.guide[open] { display: block; }
 .roster li.lane { color: var(--pink); font-weight: 700; }
 .roster li.lane .rt { color: var(--pink); }
 .roster-note { margin: 0 0 6px; font-size: 0.66rem; color: var(--muted); }
+
+
+/* v8: 경기 페이지 겹침 수정, 종합 배지, 완료 알림, 패치 노트 */
+#tab-match.on { overflow: hidden; }
+#tab-match .match { overflow: hidden; margin-bottom: 8px; }
+#tab-match .match #match-events { min-height: 0; }
+#tab-match .match-actions { flex: none; position: relative; z-index: 2; }
+@media (max-height: 720px) { #tab-match #minimap { display: none; } }
+@media (max-height: 640px) { #tab-match .rosters { display: none; } }
+.ovr-badge { display: inline-block; margin-left: 8px; padding: 2px 6px; font-size: 0.7rem; vertical-align: middle; color: var(--ink); background: var(--yellow); border: 2px solid var(--ink); text-shadow: none; }
+#act-toast { position: fixed; left: 50%; top: 64px; z-index: 60; width: min(92vw, 440px); transform: translate(-50%, -12px); padding: 8px 12px; font-size: 0.82rem; line-height: 1.5; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; background: var(--panel); color: var(--text); }
+#act-toast.show { opacity: 1; transform: translate(-50%, 0); }
+#act-toast b { color: var(--mint); margin-right: 4px; }
+.patchnote { border-color: var(--yellow) !important; }
+.patchnote h2 { margin: 0 0 6px; font-size: 0.95rem; color: var(--yellow); }
+.patchnote ul { margin: 0 0 8px; padding-left: 16px; font-size: 0.82rem; line-height: 1.6; }
+.patchnote li.up { color: var(--mint); }
+.patchnote li.down { color: var(--pink); }
+.patchnote .primary { min-height: 40px; margin: 0; }
+.patchnote { padding: 10px 12px; }
+
+.seasoncard { padding: 8px 12px; }
+.seasoncard h2 { margin: 0 0 4px; font-size: 0.85rem; color: var(--yellow); }
+.seasoncard ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: 0.76rem; }
+.seasoncard li { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px dashed var(--edge); padding: 1px 0; }
+.seasoncard li span { color: var(--muted); }
+.seasoncard li b { text-align: right; }
+.seasoncard p { margin: 4px 0 0; font-size: 0.66rem; line-height: 1.4; color: var(--muted); }
+@media (max-height: 760px) { .seasoncard p { display: none; } }
+.seasoncard p { display: none !important; } .seasoncard li { white-space: nowrap; }
+
+/* v10: 현황/일정/순위/숙련도/커리어/소식 */
+.newsstrip { display: block; width: 100%; text-align: left; font: inherit; font-size: 0.78rem; line-height: 1.4; padding: 6px 10px; color: var(--text); background: var(--panel); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.newsstrip .tag { display: inline-block; padding: 0 5px; margin-right: 4px; color: #fff; background: var(--pink); font-size: 0.68rem; }
+.statuscard { padding: 8px 12px; }
+.statuscard h2, .schedcard h2, .rankcard h2, .masterycard h2 { margin: 0 0 4px; font-size: 0.85rem; color: var(--yellow); display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.statuscard h2 .link-btn { font-size: 0.72rem; }
+.rankcard h2 small, .masterycard h2 small { font-size: 0.68rem; font-weight: 400; color: var(--muted); }
+.statuscard ul, .schedcard ul, .kv { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: 0.76rem; }
+.statuscard li, .schedcard li, .kv li { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px dashed var(--edge); padding: 2px 0; }
+.statuscard li span, .schedcard li span, .kv li span { color: var(--muted); }
+.statuscard li.wide, .schedcard li, .kv.one li { grid-column: 1 / -1; }
+.statuscard li.wide b { text-align: right; font-size: 0.72rem; }
+.statuscard li.mil.exempt b, .statuscard li.mil.done b { color: var(--mint); }
+.statuscard li.mil.pending b { color: var(--yellow); }
+b.up, small.dl.up { color: var(--mint); } b.down, small.dl.down { color: var(--pink); }
+small.dl { margin-left: 2px; font-size: 0.6rem; }
+.schedcard li.w b { color: var(--mint); } .schedcard li.l b { color: var(--pink); }
+.schedcard li.next { background: rgba(255, 210, 63, 0.18); } .schedcard li.po span { color: var(--yellow); }
+.rankcard h3 { margin: 6px 0 2px; font-size: 0.74rem; color: var(--blue); }
+.rankcard ol { margin: 0; padding: 0; list-style: none; font-size: 0.74rem; }
+.rankcard ol li { display: grid; grid-template-columns: 1.6em 1fr auto 2em; gap: 6px; padding: 1px 0; align-items: baseline; }
+.rankcard ol li em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rankcard ol li i { font-style: normal; color: var(--muted); font-size: 0.66rem; max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rankcard ol li b { text-align: right; } .rankcard ol li.me { color: var(--yellow); font-weight: 700; }
+.rankcard .hint { margin: 4px 0 0; font-size: 0.64rem; color: var(--muted); }
+.masterycard ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 34dvh; overflow-y: auto; }
+.masterycard li { display: flex; align-items: center; gap: 8px; font-size: 0.76rem; }
+.masterycard li img, .masterycard .noimg { flex: none; width: 28px; height: 28px; background: var(--ink); image-rendering: auto; border: 2px solid var(--edge); }
+.masterycard li .mi { flex: 1; min-width: 0; } .masterycard li .mn small { margin-left: 6px; color: var(--yellow); font-size: 0.62rem; }
+.mbar { height: 6px; background: var(--ink); border: 1px solid var(--edge); } .mfill { height: 100%; background: var(--blue); } .mfill.main { background: var(--mint); }
+.masterycard li.cur strong { color: var(--yellow); } .empty-li { color: var(--muted); font-size: 0.76rem; grid-column: 1 / -1; }
+dialog .kv { margin-bottom: 8px; } dialog .plain { margin: 0 0 8px; padding-left: 16px; font-size: 0.78rem; line-height: 1.6; }
+dialog h3 { margin: 8px 0 4px; font-size: 0.8rem; color: var(--yellow); } dialog .kv li { font-size: 0.8rem; }
+.newslist { margin: 0 0 8px; padding: 0; list-style: none; max-height: 60dvh; overflow-y: auto; }
+.newslist > li { margin-bottom: 8px; padding: 6px 8px; border-left: 4px solid var(--edge); font-size: 0.8rem; }
+.newslist > li.good { border-left-color: var(--mint); } .newslist > li.bad { border-left-color: var(--pink); }
+.newslist small { display: block; color: var(--muted); font-size: 0.64rem; } .newslist strong { display: block; margin: 1px 0 3px; }
+.newslist ul { margin: 0; padding: 0; list-style: none; font-size: 0.72rem; color: var(--muted); }
+.newslist ul b { color: var(--blue); } .newslist ul em { font-style: normal; color: var(--pink); }
+.chip.mil { color: var(--mint); border-color: var(--mint); }
+.statuscard li b { white-space: nowrap; } .statuscard li span { white-space: nowrap; } .schedcard li { white-space: nowrap; } .schedcard li span { overflow: hidden; text-overflow: ellipsis; }
+.schedcard, .rankcard, .masterycard { padding: 8px 12px; }

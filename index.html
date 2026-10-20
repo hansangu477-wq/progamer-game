@@ -83,7 +83,9 @@
 
         <nav class="footnav" aria-label="바로가기">
           <button type="button" data-open="guide">게임 가이드</button>
-          <button type="button" data-open="ach">업적</button>
+          <button type="button" data-open="career">커리어</button>
+            <button type="button" data-open="news">소식·댓글</button>
+            <button type="button" data-open="ach">업적</button>
           <button type="button" data-open="backup">저장·불러오기</button>
         </nav>
         <p class="mini-legal">제작 <b>H</b> · 팬 프로젝트입니다. 게임 속 이름은 모두 가상이며 Riot Games와 무관해요. <button type="button" class="link-btn inline" data-open="guide">자세히</button></p>
@@ -137,12 +139,30 @@
 
         <!-- 페이지 1: 육성 -->
         <div class="tab-panel on" id="tab-home" role="tabpanel">
+          <button type="button" class="newsstrip px" id="news-strip" hidden></button>
+          <section class="patchnote px" id="patch-note" hidden>
+            <h2 id="pn-title"></h2>
+            <ul id="pn-list"></ul>
+            <button type="button" id="pn-ok" class="primary">확인</button>
+          </section>
+
           <section class="stats px" id="stats" aria-label="선수 능력치"></section>
 
           <section class="career px" aria-label="커리어 목표">
             <p id="career-goal"></p>
             <p id="career-progress"></p>
             <button id="test-btn" class="primary" hidden></button>
+          </section>
+
+          <section class="px statuscard" id="status-card">
+            <h2>선수 현황 <button type="button" class="link-btn" data-open="career">커리어 ▸</button></h2>
+            <ul id="status-list"></ul>
+          </section>
+
+          <section class="px seasoncard" id="season-card" hidden>
+            <h2>시즌 현황</h2>
+            <ul id="season-card-list"></ul>
+            <p id="season-card-hint"></p>
           </section>
 
           <h2 class="sec-label">이번 주 행동</h2>
@@ -169,6 +189,11 @@
 
         <!-- 페이지 3: 선수 -->
         <div class="tab-panel" id="tab-player" role="tabpanel">
+          <section class="px masterycard" id="mastery-card">
+            <h2>챔피언 숙련도 <small id="mastery-sum"></small></h2>
+            <ul id="mastery-list"></ul>
+          </section>
+
           <section class="champ px" id="champ-panel" aria-label="챔피언">
             <img id="champ-img" alt="" width="48" height="48" hidden>
             <div class="champ-info">
@@ -203,6 +228,20 @@
             <p class="team-head"><span id="team-logo"></span><strong id="team-name"></strong></p>
             <p id="team-pay"></p>
             <p id="team-mates"></p>
+          </section>
+
+          <section class="px schedcard" id="sched-card" hidden>
+            <h2 id="sched-title">경기 일정</h2>
+            <ul id="sched-list"></ul>
+          </section>
+
+          <section class="px rankcard" id="rank-card" hidden>
+            <h2>개인 순위 <small id="rank-sum"></small></h2>
+            <h3 id="rank-pos-title"></h3>
+            <ol id="rank-pos"></ol>
+            <h3>전체 선수 TOP</h3>
+            <ol id="rank-all"></ol>
+            <p class="hint">종합 평점 기준 · 내 평점은 종합 능력치+챔프폭+우승 보정</p>
           </section>
 
           <section class="season px" id="season" hidden>
@@ -268,8 +307,12 @@
     <ol>
       <li><b>한 주에 하나</b>씩 행동을 골라요. 솔로랭크·스크림·챔프 연습으로 능력치를 올리고, 휴식으로 체력과 멘탈을 채워요.</li>
       <li><b>아마추어 → 아카데미 → 프로</b> 순서로 올라가요. 아카데미 입단은 종합 52, 프로 승격은 종합 72와 경기 성적이 필요해요.</li>
-      <li>아마추어는 <b>19세</b>, 아카데미는 <b>21세</b>까지 다음 단계에 오르지 못하면 커리어가 끝나요. 프로는 30세에 은퇴해요.</li>
+      <li>아마추어는 <b>19세</b>, 아카데미는 <b>21세</b>까지 다음 단계에 오르지 못하면 커리어가 끝나요. 프로는 33세에 은퇴해요.</li>
       <li><b>체력·멘탈</b>이 20 아래면 막대가 붉게 변해요. 무리하면 이벤트로 컨디션이 무너질 수 있어요.</li>
+      <li><b>국제대회</b>: MSI는 스플릿 2 플레이오프 우승(1시드)·준우승(2시드), 월드 챔피언십은 스플릿 3 플레이오프 진출(3시드)·준우승(2시드)·우승(1시드)로 출전권을 얻어요. 육성 화면 '시즌 현황'에서 확인할 수 있어요.</li>
+      <li><b>병역</b>: 28세가 되면 입대해 18개월 동안 쉬고, 능력치가 떨어져요. 단, <b>아시안게임(4년마다 9월, 2026·2030·2034…) 금메달</b>을 따면 병역이 면제돼요. 대표팀은 프로 단계에서 <b>내 포지션 개인 순위 3위 이내</b>일 때 발탁돼요.</li>
+      <li><b>소식·팬 반응</b>: 경기 결과와 기록에 따라 기사와 댓글이 올라와요. 기록 탭의 '소식·댓글', '커리어'에서 볼 수 있어요.</li>
+      <li><b>챔프폭</b>은 숙련도 <b>50 이상</b>인 챔피언 1개당 +12, 35~49인 챔피언은 +3씩 올라요(기본 25). 챔프 연습과 경기로 숙련도를 키우세요.</li>
       <li>경기에서는 <b>상대 선수의 실력</b>이 결과에 반영돼요. 같은 포지션끼리 맞붙는 라인전(⚔)과 팀 전체 실력이 모두 영향을 줘요.</li>
       <li>프로가 되면 장비를 사고, MSI와 월드 챔피언십 우승에 도전해요.</li>
       <li>하단 탭이나 화면을 좌우로 밀어 <b>페이지</b>를 넘길 수 있어요. 진행 상황은 이 브라우저에 자동 저장돼요.</li>
@@ -279,6 +322,22 @@
       <p>이 게임은 Riot Games가 보증하거나 후원하지 않는 팬 프로젝트입니다.</p>
       <p lang="en">This project was created under Riot Games' "Legal Jibber Jabber" policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc.</p>
     </div>
+    <button type="button" class="primary" data-close>닫기</button>
+  </dialog>
+
+  <dialog id="career" class="px guide">
+    <h2>커리어</h2>
+    <ul class="kv" id="career-sum"></ul>
+    <h3>우승·메달</h3>
+    <ul class="kv" id="career-trophies"></ul>
+    <h3>시즌 기록</h3>
+    <ul class="plain" id="career-hist"></ul>
+    <button type="button" class="primary" data-close>닫기</button>
+  </dialog>
+
+  <dialog id="news" class="px guide">
+    <h2>소식 · 팬 반응</h2>
+    <ul class="newslist" id="news-list"></ul>
     <button type="button" class="primary" data-close>닫기</button>
   </dialog>
 
@@ -305,6 +364,7 @@
 
   <script src="bgm.js"></script>
   <script src="game.js"></script>
+  <script src="extras.js"></script>
   <script src="ui.js"></script>
 </body>
 </html>
