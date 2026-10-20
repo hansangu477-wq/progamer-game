@@ -285,7 +285,9 @@ function simulateMatch(oppBonus = 0, oppName = null, rosterWeight = 1) {
   eff.lane += gearPow("mouse"); // 장비 보정
   eff.fight += gearPow("keyboard");
   let mate = (player.team ? player.team.level : st.matchLevel) + randInt(-3, 3) + gearPow("headset") / 2; // 팀원 평균 실력
-  let opp = st.matchLevel + randInt(-5, 5) + oppBonus; // 상대 팀 평균 실력
+  // 내 실력이 리그 평균을 넘어서면 상대도 함께 성장합니다 (격차의 절반 가까이를 따라잡아요)
+  const catchUp = Math.max(0, (s.laning + s.teamfight + s.decision) / 3 - (st.matchLevel + leagueBonus())) * 0.11;
+  let opp = st.matchLevel + randInt(-5, 5) + oppBonus + catchUp; // 상대 팀 평균 실력
   let laneOpp = opp; // 내 라인의 맞상대 실력
   let laneName = "상대 라이너";
   let oppInfo = null;
@@ -411,7 +413,7 @@ function train(key) {
   const gains = [];
 
   for (const [stat, [min, max]] of Object.entries(action.gains)) {
-    const g = Math.round(randInt(min, max) * k * growthCurve(s[stat]));
+    const g = stoch(randInt(min, max) * k * growthCurve(s[stat]));
     s[stat] = clamp(s[stat] + g);
     if (g > 0) gains.push(`${LABELS[stat]} +${g}`);
   }
@@ -482,7 +484,7 @@ function playMatch() {
   const k = player.talent * st.growth * ageFactor() * (0.6 + 0.4 * (s.stamina / 100));
   const gains = [];
   for (const [stat, [min, max]] of Object.entries({ laning: [0, 1], teamfight: [0, 2], decision: [0, 2] })) {
-    const g = Math.round(randInt(min, max) * k * growthCurve(s[stat]));
+    const g = stoch(randInt(min, max) * k * growthCurve(s[stat]));
     s[stat] = clamp(s[stat] + g);
     if (g > 0) gains.push(`${LABELS[stat]} +${g}`);
   }
@@ -1544,19 +1546,21 @@ function teamLogo(name, size = 32) {
 }
 
 // ---------- 장비 상점: 연봉으로 장비를 사서 능력치를 보조합니다 ----------
-const GBONUS = [0, 2, 4, 6, 7, 8]; // 장비 레벨별 능력치 보정 (뒤로 갈수록 효율이 줄어듭니다)
+const GBONUS = [0, 1, 2, 3, 4, 5]; // 장비 레벨별 능력치 보정 (뒤로 갈수록 효율이 줄어듭니다)
 const GEAR = {
-  mouse: { name: "마우스", prices: [400, 1200, 3000, 6500, 12000], effect: (n) => `경기에서 라인전 +${GBONUS[n]}` },
-  keyboard: { name: "키보드", prices: [400, 1200, 3000, 6500, 12000], effect: (n) => `경기에서 한타 +${GBONUS[n]}` },
-  monitor: { name: "모니터", prices: [500, 1500, 3500, 7500, 14000], effect: (n) => `경기에서 판단력 +${GBONUS[n]}` },
-  chair: { name: "게이밍 의자", prices: [300, 900, 2500, 5500, 10000], effect: (n) => `훈련 피로 -${n * 2}, 휴식 회복 +${n * 5}` },
-  headset: { name: "헤드셋", prices: [600, 1800, 4000, 8500, 16000], effect: (n) => `팀원 실력 +${GBONUS[n] / 2}` },
+  mouse: { name: "마우스", prices: [600, 1900, 4800, 10400, 19200], effect: (n) => `경기에서 라인전 +${GBONUS[n]}` },
+  keyboard: { name: "키보드", prices: [600, 1900, 4800, 10400, 19200], effect: (n) => `경기에서 한타 +${GBONUS[n]}` },
+  monitor: { name: "모니터", prices: [800, 2400, 5600, 12000, 22400], effect: (n) => `경기에서 판단력 +${GBONUS[n]}` },
+  chair: { name: "게이밍 의자", prices: [500, 1400, 4000, 8800, 16000], effect: (n) => `훈련 피로 -${n * 2}, 휴식 회복 +${n * 5}` },
+  headset: { name: "헤드셋", prices: [1000, 2900, 6400, 13600, 25600], effect: (n) => `팀원 실력 +${GBONUS[n] / 2}` },
 };
 const gearLv = (key) => (player.gear && player.gear[key]) || 0;
 const gearPow = (key) => GBONUS[gearLv(key)];
-const gearCap = () => Math.min(5, 3 + yearOf(player.day) - 2026); // 해마다 신형 장비가 나와 한계가 1씩 늘어납니다
+const gearCap = () => Math.min(5, 2 + yearOf(player.day) - 2026); // 해마다 신형 장비가 나와 한계가 1씩 늘어납니다
 const annual = (t) => (t.salary * 52).toLocaleString("ko-KR"); // 주급 -> 연봉
-const growthCurve = (v) => Math.max(0.1, 1 - Math.max(0, v - 45) / 55); // 능력치가 높을수록 성장이 더뎌집니다
+const GROWTH_SCALE = 0.2; // 전체 성장 속도 (낮을수록 느림)
+const stoch = (x) => Math.floor(x + Math.random()); // 소수점 성장은 확률로 반영 (0.4면 40% 확률로 +1)
+const growthCurve = (v) => Math.max(0.08, 1 - Math.max(0, v - 40) / 65) * GROWTH_SCALE; // 능력치가 높을수록 성장이 더뎌집니다
 const leagueBonus = () => Math.min(12, (player.season.no - 1) * 1.5); // 시즌이 지날수록 리그 수준이 올라갑니다
 let shopOpen = false;
 
@@ -2172,7 +2176,7 @@ function playTourney() {
   const k = player.talent * STAGES.pro.growth * ageFactor() * (0.6 + 0.4 * (s.stamina / 100)) * scale;
   const gains = [];
   for (const [stat, [min, max]] of Object.entries({ laning: [0, 1], teamfight: [0, 2], decision: [0, 2] })) {
-    const g = Math.round(randInt(min, max) * k * growthCurve(s[stat]));
+    const g = stoch(randInt(min, max) * k * growthCurve(s[stat]));
     s[stat] = clamp(s[stat] + g);
     if (g > 0) gains.push(`${LABELS[stat]} +${g}`);
   }

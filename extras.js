@@ -468,6 +468,7 @@
     _render.apply(this, arguments);
     paint();
   };
+  window.exT = T; window.exAddNews = addNews; window.exX = X; window.exRanks = ranks; window.exBoard = board;
   const strip = $("news-strip");
   if (strip) strip.addEventListener("click", () => { const d = $("news"); if (d && d.showModal) d.showModal(); });
 })();

@@ -104,6 +104,7 @@
           <label class="pos"><input type="radio" name="position" value="support"><span class="pos-name">서포터</span><span class="pos-desc">판단력과 한타가 균형</span></label>
         </fieldset>
 
+        <label class="hardmode"><input type="checkbox" id="hard-mode"> <b>하드 모드</b> <small>상대가 더 강해지고, 은퇴 보너스는 2배</small></label>
         <button type="submit" class="primary">▶ 데뷔하기</button>
         <button type="button" class="link-btn center" id="start-back">← 처음으로</button>
       </form>
@@ -165,6 +166,11 @@
           <section class="px statuscard" id="status-card">
             <h2>선수 현황 <button type="button" class="link-btn" data-open="career">커리어 ▸</button></h2>
             <ul id="status-list"></ul>
+          </section>
+
+          <section class="px questcard" id="quest-card">
+            <h2>목표 퀘스트 <small id="quest-sum"></small></h2>
+            <ul id="quest-list"></ul>
           </section>
 
           <section class="px seasoncard" id="season-card" hidden>
@@ -370,6 +376,7 @@
   <script src="bgm.js"></script>
   <script src="game.js"></script>
   <script src="extras.js"></script>
+  <script src="fun.js"></script>
   <script src="ui.js"></script>
 </body>
 </html>
