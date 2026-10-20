@@ -1,6 +1,6 @@
 // ---------- 기본 데이터 ----------
 const SAVE_KEY = "lol-manager-save";
-const START_AGE = 15;
+const START_AGE = 18;
 const WEEKS_PER_YEAR = 52;
 
 const LABELS = {
@@ -202,7 +202,7 @@ function saveGame() {
 // ---------- 선수 만들기 ----------
 function createPlayer(name, posKey) {
   // 어린 나이에 시작하므로 기본 능력치가 낮습니다
-  const stats = { laning: 30, teamfight: 30, decision: 30, champPool: 25, mental: 70, stamina: 100 };
+  const stats = { laning: 38, teamfight: 38, decision: 38, champPool: 25, mental: 70, stamina: 100 };
   for (const [stat, bonus] of Object.entries(POSITIONS[posKey].bonus)) {
     stats[stat] += bonus;
   }
@@ -445,7 +445,7 @@ function takeTest() {
     player.stageRecord = { w: 0, l: 0 };
     player.season = newSeason(player.season.no); // 새 단계의 첫 시즌
     player.team = makeTeam(st.next);
-    if (st.next === "pro" && getAge() <= 15) flag("youngPro");
+    if (st.next === "pro" && getAge() <= 18) flag("youngPro");
     pushLog({ note: `${st.testName} 합격! ${STAGES[st.next].label} 선수가 되었습니다.`, good: true });
   } else {
     player.stats.mental = clamp(player.stats.mental - 10);
@@ -967,7 +967,7 @@ const REGION_ROSTER_POOL = {
 const MATE_NAMES = [...Object.values(ROSTER_POOL).flat(), ...Object.values(REGION_ROSTER_POOL).flatMap((r) => Object.values(r).flat())]; // 예전 저장 데이터 호환용
 
 // 이 나이가 되면 해당 단계의 커리어가 끝납니다
-const LIMITS = { amateur: 19, academy: 21, pro: 33 }; // 프로는 병역(18개월)까지 고려해 33세
+const LIMITS = { amateur: 20, academy: 23, pro: 34 }; // 프로는 병역(18개월)까지 고려해 34세
 const END_TEXT = {
   amateur: "아카데미에 들어가지 못한 채 나이 제한이 지나, 프로의 꿈을 접었습니다.",
   academy: "정해진 기간 안에 프로로 승격하지 못해 아카데미에서 방출되었습니다.",
@@ -2355,7 +2355,7 @@ const ACHIEVEMENTS = [
   { id: "first_win", name: "첫 승리", desc: "리그 경기에서 처음으로 이기기", test: () => player.record.w >= 1 },
   { id: "academy", name: "아카데미 입단", desc: "아카데미 입단 테스트 합격", test: () => player.stage !== "amateur" },
   { id: "pro", name: "프로 데뷔", desc: "프로 승격 테스트 합격", test: () => player.stage === "pro" },
-  { id: "young_pro", name: "천재 소년", desc: "15세 안에 프로 데뷔 (게임 첫 해)", test: () => !!player.flags.youngPro },
+  { id: "young_pro", name: "천재 소년", desc: "18세 안에 프로 데뷔 (게임 첫 해)", test: () => !!player.flags.youngPro },
   { id: "perfect", name: "무패 행진", desc: "정규시즌 10전 전승", test: () => !!player.flags.perfect },
   { id: "title", name: "첫 우승", desc: "스플릿 또는 국제대회 우승", test: () => (player.titles || 0) >= 1 },
   { id: "msi_play", name: "국제 무대", desc: "MSI에 출전하기", test: () => !!player.flags.msiPlay },
