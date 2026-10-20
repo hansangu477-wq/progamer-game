@@ -1088,3 +1088,16 @@ dialog h3 { margin: 8px 0 4px; font-size: 0.8rem; color: var(--yellow); } dialog
 .chip.mil { color: var(--mint); border-color: var(--mint); }
 .statuscard li b { white-space: nowrap; } .statuscard li span { white-space: nowrap; } .schedcard li { white-space: nowrap; } .schedcard li span { overflow: hidden; text-overflow: ellipsis; }
 .schedcard, .rankcard, .masterycard { padding: 8px 12px; }
+
+/* v11: 현황 탭 추가(6칸), 미니맵 복원 */
+.tabbar { grid-template-columns: repeat(6, 1fr); }
+.tabbar button { font-size: 0.64rem; padding: 7px 0 5px; }
+.homesum { display: flex; justify-content: space-between; width: 100%; font: inherit; font-size: 0.78rem; padding: 6px 10px; color: var(--text); background: var(--panel); cursor: pointer; text-align: left; }
+.homesum b { color: var(--yellow); }
+#tab-status .px { margin-bottom: 10px; }
+#tab-status .seasoncard p { display: none; }
+#tab-status .masterycard ul { max-height: none; }
+#minimap { width: min(100%, 22dvh) !important; }
+@media (max-height: 720px) { #tab-match #minimap { display: block !important; width: min(100%, 20dvh) !important; } }
+@media (max-height: 600px) { #tab-match #minimap { display: none !important; } #tab-match .rosters { display: grid !important; } }
+@media (max-height: 640px) { #tab-match .rosters { display: grid; } }

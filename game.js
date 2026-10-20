@@ -276,22 +276,38 @@ function gauss(sd) {
 }
 
 // 라인전 -> 오브젝트 -> 한타 순서로 진행합니다
-function simulateMatch(oppBonus = 0) {
+// oppName을 주면 그 팀의 선수 실력이 결과에 반영됩니다 (rosterWeight: 반영 비율)
+function simulateMatch(oppBonus = 0, oppName = null, rosterWeight = 1) {
   const s = player.stats;
   const st = STAGES[player.stage];
   const cond = (0.85 + 0.15 * (s.stamina / 100)) * (0.9 + 0.1 * (s.mental / 100));
   const eff = champEffect(); // 챔피언 보정
   eff.lane += gearPow("mouse"); // 장비 보정
   eff.fight += gearPow("keyboard");
-  const mate = (player.team ? player.team.level : st.matchLevel) + randInt(-3, 3) + gearPow("headset") / 2; // 팀원 평균 실력
-  const opp = st.matchLevel + randInt(-5, 5) + oppBonus; // 상대 팀 평균 실력
+  let mate = (player.team ? player.team.level : st.matchLevel) + randInt(-3, 3) + gearPow("headset") / 2; // 팀원 평균 실력
+  let opp = st.matchLevel + randInt(-5, 5) + oppBonus; // 상대 팀 평균 실력
+  let laneOpp = opp; // 내 라인의 맞상대 실력
+  let laneName = "상대 라이너";
+  let oppInfo = null;
+  if (oppName && player.team) {
+    // 선수 한 명 한 명의 실력을 반영: 같은 포지션 맞상대는 라인전에, 팀 평균은 오브젝트·한타에
+    const year = yearOf(player.day);
+    const base = leagueMeanAvg(year);
+    oppInfo = rosterInfo(oppName, year, Object.values(myRosterMap()));
+    opp += clampN((oppInfo.avg - base) * 0.4 * rosterWeight, -6, 7);
+    laneOpp = opp + clampN((oppInfo.rt[player.position] - oppInfo.avg) * 0.5 * rosterWeight, -7, 7);
+    laneName = oppInfo.ro[player.position];
+    const my = myRosterMap();
+    const mateAvg = meanOf(POS_KEYS.filter((k) => k !== player.position).map((k) => playerRating(my[k], year)));
+    mate += clampN((mateAvg - base) * 0.3 * rosterWeight, -5, 5);
+  }
   const events = [];
   const kills = [0, 0];
   const objs = [0, 0];
   let gold = 0; // 양수면 우리 팀이 앞섬
 
   // 1) 라인전: 내 라인 + 나머지 라인
-  const myLane = (s.laning + eff.lane) * cond - opp + gauss(6);
+  const myLane = (s.laning + eff.lane) * cond - laneOpp + gauss(6);
   gold += myLane * 40;
   if (Math.abs(myLane) > 8) {
     const w = myLane > 0;
@@ -301,7 +317,7 @@ function simulateMatch(oppBonus = 0) {
       own: true,
       minute: 4 + randInt(0, 8),
       mine: w,
-      text: w ? `${who()}이(가) 라인전에서 솔로킬!` : `${who()}이(가) 라인전에서 솔로킬을 내줬습니다.`,
+      text: w ? `${who()}이(가) 라인전에서 ${laneName}을(를) 솔로킬!` : `${who()}이(가) 라인전에서 ${laneName}에게 솔로킬을 내줬습니다.`,
     });
   }
   const mateLane = mate - opp + gauss(5);
@@ -358,7 +374,7 @@ function simulateMatch(oppBonus = 0) {
     text: win ? "우리 팀이 넥서스를 파괴합니다!" : "상대 팀이 넥서스를 파괴합니다...",
   });
   events.sort((a, b) => a.minute - b.minute);
-  return { win, events, kills, goldDiff: Math.round(gold) };
+  return { win, events, kills, goldDiff: Math.round(gold), oppPlayers: oppInfo ? oppInfo.ro : null, oppRatings: oppInfo ? oppInfo.rt : null, laneName: oppInfo ? laneName : null };
 }
 
 // ---------- 행동 ----------
@@ -436,6 +452,14 @@ function takeTest() {
 }
 
 
+// 정규시즌 상대 일정: 모든 팀과 고르게 만나도록 미리 정합니다
+function ensureSched(se) {
+  if (se.sched && se.sched.length >= SEASON_GAMES) return se.sched;
+  const names = shuffle(se.teams.map((t) => t.name));
+  se.sched = Array.from({ length: SEASON_GAMES }, (_, i) => names[i % names.length]);
+  return se.sched;
+}
+
 // 리그 경기: 1주를 쓰고, 경기 경험으로 능력치와 챔피언 숙련도가 오릅니다
 function playMatch() {
   const st = STAGES[player.stage];
@@ -448,8 +472,10 @@ function playMatch() {
 
   const se = player.season;
   const playoff = se.phase === "playoff";
-  const r = simulateMatch((playoff ? 3 : 0) + leagueBonus()); // 플레이오프 상대는 더 강하고, 리그 수준도 올라갑니다
-  r.oppName = se.teams[randInt(0, se.teams.length - 1)].name;
+  ensureSched(se);
+  const oppTeamName = !playoff && se.sched[se.games] ? se.sched[se.games] : se.teams[randInt(0, se.teams.length - 1)].name;
+  const r = simulateMatch((playoff ? 3 : 0) + leagueBonus(), oppTeamName); // 플레이오프 상대는 더 강하고, 리그 수준도 올라갑니다
+  r.oppName = oppTeamName;
   r.label = playoff ? `플레이오프 ${ROUNDS[se.round]}` : "리그 경기";
 
   const s = player.stats;
@@ -485,8 +511,15 @@ function playMatch() {
       endSeason(`플레이오프 ${ROUNDS[se.round]} 탈락`, false);
     }
   } else {
+    (se.results = se.results || []).push({ opp: oppTeamName, win: r.win, k: r.kills });
     se.games += 1;
     se[r.win ? "w" : "l"] += 1;
+    // 다른 팀들도 같은 라운드에 한 경기씩 치릅니다 (실시간 순위용)
+    if (!se.live) se.live = {};
+    for (const t of se.teams) {
+      const e = (se.live[t.name] = se.live[t.name] || { w: 0, l: 0 });
+      e[Math.random() < sigmoid(t.str / 12) ? "w" : "l"] += 1;
+    }
     if (se.games >= SEASON_GAMES) finishRegular();
   }
   pushLog({ note, good: r.win });
@@ -787,7 +820,20 @@ for (const key of Object.keys(LABELS)) {
   statsEl.appendChild(row);
 }
 
+// 챔프폭: 숙련도 50 이상 챔피언은 주력(+12), 35~49는 연습 중(+3). 기본 25
+const POOL_MAIN = 50, POOL_SUB = 35;
+function syncChampPool() {
+  let main = 0, sub = 0;
+  for (const v of Object.values(player.mastery || {})) {
+    if (v >= POOL_MAIN) main++;
+    else if (v >= POOL_SUB) sub++;
+  }
+  player.stats.champPool = clamp(25 + main * 12 + sub * 3);
+}
+
 function render() {
+  checkRosterChange();
+  syncChampPool();
   const st = STAGES[player.stage];
 
   document.getElementById("player-name").textContent = player.name;
@@ -870,10 +916,56 @@ function render() {
 // ---------- 나이 제한 / 팀 / 이벤트 ----------
 // 실제 이름을 살짝 비튼 패러디 이름입니다
 const CLUB_NAMES = ["OK 저금통 브라이언", "광둥 프릭스", "BNQ 피어Y", "리브 샌드백", "클라우드8", "G3"];
-const MATE_NAMES = ["패이커", "케리어", "제우쓰", "오노", "구마유지", "쵸삐", "캐년", "데프티", "쇼메이크", "루러", "와이퍼", "피넛츠", "도랑", "리핸즈", "기안", "제크"];
+// 포지션별 선수 풀 (실제 선수 이름을 살짝 비튼 패러디). 포지션에 맞는 선수만 그 자리에 들어갑니다.
+// 국내(LCK) 팀은 ROSTER_POOL, 해외 팀은 자기 지역의 풀(REGION_ROSTER_POOL)에서 뽑아요.
+const ROSTER_POOL = {
+  top: ["제우쓰", "도랑", "기안", "캔나", "칸", "모건", "리치", "누구리", "스멥", "마린", "쿠로", "소두", "마오", "시우", "킹겐", "퍼펙트", "두두", "클리어"],
+  jungle: ["오노", "캐년", "피넛츠", "윌러", "타잔", "클리드", "벵기", "에스퍼", "틴", "위버", "쿠즈", "비리", "도시", "루시드", "스폰지", "표식", "랩터", "움티"],
+  mid: ["패이커", "쵸삐", "쇼메이크", "제크", "비디하", "스카웃", "루키", "불리", "클로저", "라타", "페이트", "소프엠", "유칼", "피셔", "빅라"],
+  adc: ["구마유지", "데프티", "루러", "와이퍼", "페이즈", "테디", "뱅", "프로미", "하나비", "프레이", "비비", "룬", "스탈", "에이밍", "태윤", "지우", "디아블"],
+  support: ["케리어", "리핸즈", "라이프", "고스트", "딜라이트", "마타", "베릴", "호잇", "노이", "코어", "조이", "헵트", "로저", "피터", "두로", "안딜", "폴루", "나메이", "켈린"],
+};
+const REGION_ROSTER_POOL = {
+  LPL: {
+    top: ["더쉬", "플랜드", "빈이", "삼육구", "지카", "에이지"],
+    jungle: ["티안", "카르사", "쉰", "하루", "베이천", "카나비"],
+    mid: ["나이트", "샤오후", "엔젤", "야가오", "포지", "도인비"],
+    adc: ["우지", "재키러브", "엘크", "갈라", "위기", "하오"],
+    support: ["메이코", "크리스프", "밍", "항", "온", "유얀지아"],
+  },
+  LEC: {
+    top: ["윈더", "브로큰블레이드", "오도암네", "알파리", "비위포", "쇼킹"],
+    jungle: ["잰코스", "엘리오야", "인스파이어드", "마이크", "레베", "아바"],
+    mid: ["캡스", "라르센", "퍼플", "아빙", "졸라", "세이커"],
+    adc: ["업셋", "카르지", "힐리", "하이브", "제이드", "롬"],
+    support: ["미키스", "어델", "호프", "브루노", "케빈", "델타"],
+  },
+  LCS: {
+    top: ["임팩트", "리코리스", "퀸", "도판", "던던", "토쿠"],
+    jungle: ["블래버", "인센스", "메테오스", "컨테이", "아머", "폴"],
+    mid: ["젠슨", "비예르센", "포벨터", "어비스", "파인", "라이언"],
+    adc: ["즈벤", "스니키", "도이", "터키", "에이스", "팝"],
+    support: ["코어제이제이", "아프로무", "벌칸", "에일", "터치", "쿠로미"],
+  },
+  LCP: {
+    top: ["후지", "소우", "팍", "클레이", "투오", "룽"],
+    jungle: ["토루", "비제이", "레이", "윈", "켄", "지에"],
+    mid: ["마르", "루나", "토비", "쉬", "하오쿤", "아이"],
+    adc: ["유니", "칸지", "미야", "리플", "투이", "카이"],
+    support: ["소라", "미오", "호안", "렌", "두이", "탄"],
+  },
+  CBLOL: {
+    top: ["로보", "귀고", "카브랄", "제로", "테이", "샌더"],
+    jungle: ["레인저", "아이기스", "크로크", "디사미스", "오스카", "마르코"],
+    mid: ["티노운스", "고쿠", "그레브타", "다리오", "니코", "엘라"],
+    adc: ["브란스", "타이탄", "트리고", "데이브", "루카스", "레오"],
+    support: ["즈리", "알로", "카우", "로미", "비토", "페드로"],
+  },
+};
+const MATE_NAMES = [...Object.values(ROSTER_POOL).flat(), ...Object.values(REGION_ROSTER_POOL).flatMap((r) => Object.values(r).flat())]; // 예전 저장 데이터 호환용
 
 // 이 나이가 되면 해당 단계의 커리어가 끝납니다
-const LIMITS = { amateur: 19, academy: 21, pro: 30 };
+const LIMITS = { amateur: 19, academy: 21, pro: 33 }; // 프로는 병역(18개월)까지 고려해 33세
 const END_TEXT = {
   amateur: "아카데미에 들어가지 못한 채 나이 제한이 지나, 프로의 꿈을 접었습니다.",
   academy: "정해진 기간 안에 프로로 승격하지 못해 아카데미에서 방출되었습니다.",
@@ -898,16 +990,215 @@ function makeTeam(stage, levelOffset = randInt(-4, 4), excludeName = "") {
   return {
     name: stage === "academy" ? `${club} 아카데미` : club,
     level,
-    names: shuffle(MATE_NAMES).slice(0, 4),
+    names: [], // 예전 저장 호환용 (팀원은 이제 팀·연도로 정해집니다: teamRoster)
     salary: stage === "academy" ? 20 : Math.max(30, Math.round(40 + (level - 40) * 4)),
     contract: { endYear: yearOf(player ? player.day : 0) + randInt(1, 2) }, // 11월 30일에 만료
   };
 }
 
-const mateList = () => {
-  const others = Object.keys(POSITIONS).filter((p) => p !== player.position);
-  return others.map((p, i) => `${POSITIONS[p].label} ${player.team.names[i]}`).join(" · ");
+// ---------- 팀별 · 시즌별 로스터 ----------
+// 팀 이름과 연도가 같으면 항상 같은 명단이 나오고, 해가 바뀔 때마다 일부 선수가 바뀝니다(재계약·이적).
+// 같은 해에는 한 선수가 두 팀에 동시에 있지 않아요(국내 팀 기준).
+const POS_KEYS = ["top", "jungle", "mid", "adc", "support"];
+const ROSTER_FIRST_YEAR = 2026;
+const ROSTER_TURNOVER = 0.4; // 해마다 포지션별로 선수가 바뀔 확률
+
+function strSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (const ch of String(str)) {
+    h ^= ch.codePointAt(0);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+}
+function seededRng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seededShuffle(arr, rnd) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 2026년 시작 명단: 실제 팀 구성을 본뜬 패러디입니다 (탑·정글·미드·원딜·서포터 순). 이후엔 해마다 일부가 바뀝니다.
+const ROSTER_2026 = {
+  "T2": ["도랑", "오노", "패이커", "구마유지", "케리어"],
+  "젠제트": ["기안", "캐년", "쵸삐", "루러", "두로"],
+  "한와 라이프": ["제우쓰", "피넛츠", "제크", "와이퍼", "딜라이트"],
+  "디마이너스 카이아": ["시우", "루시드", "쇼메이크", "에이밍", "베릴"],
+  "농삼 레드포스": ["킹겐", "스폰지", "스카웃", "태윤", "리핸즈"],
+  "DRZ": ["리치", "윌러", "유칼", "지우", "안딜"],
+  "KT 롤러": ["퍼펙트", "쿠즈", "비디하", "데프티", "폴루"],
+  "OK 저금통 브라이언": ["모건", "움티", "피셔", "테디", "나메이"],
+  "광둥 프릭스": ["두두", "표식", "클로저", "페이즈", "호잇"],
+  "BNQ 피어Y": ["클리어", "랩터", "빅라", "디아블", "켈린"],
+  "리브 샌드백": ["소두", "클리드", "불리", "프레이", "마타"],
+  "클라우드8": ["마오", "타잔", "페이트", "비비", "조이"],
+  "G3": ["쿠로", "벵기", "라타", "룬", "노이"],
+  "BLQ": ["빈이", "쉰", "나이트", "엘크", "온"],
+  "JDK": ["플랜드", "카나비", "야가오", "갈라", "메이코"],
+  "팁 에스포츠": ["더쉬", "카르사", "샤오후", "재키러브", "크리스프"],
+  "AI 레전드": ["삼육구", "티안", "엔젤", "위기", "밍"],
+  "프네틱": ["오도암네", "아바", "라르센", "업셋", "미키스"],
+  "카르민 콥": ["브로큰블레이드", "엘리오야", "퍼플", "카르지", "어델"],
+  "팀 비탈리티": ["윈더", "잰코스", "캡스", "힐리", "브루노"],
+  "팀 리키드": ["임팩트", "블래버", "젠슨", "즈벤", "코어제이제이"],
+  "LYOM": ["리코리스", "인센스", "포벨터", "도이", "에일"],
+  "99 시브즈": ["퀸", "메테오스", "비예르센", "스니키", "아프로무"],
+  "팀 시크릿 웨일": ["후지", "토루", "마르", "유니", "소라"],
+  "딥 크로스 게이머": ["소우", "비제이", "루나", "칸지", "미오"],
+  "CTBC 플라잉 굴": ["팍", "레이", "토비", "미야", "호안"],
+  "푸리아": ["로보", "레인저", "티노운스", "브란스", "즈리"],
+  "라우드": ["귀고", "아이기스", "고쿠", "타이탄", "알로"],
 };
+
+let rosterCache = {};
+function teamRegion(team) {
+  if (typeof REGION_TEAMS === "undefined") return null;
+  for (const [region, list] of Object.entries(REGION_TEAMS)) if (list.includes(team)) return region;
+  return null;
+}
+// 이 팀이 선수를 데려오는 풀: 해외 팀은 자기 지역, 나머지는 국내
+const poolOf = (team) => REGION_ROSTER_POOL[teamRegion(team)] || ROSTER_POOL;
+function rosterTeamNames() {
+  // 국내 리그 팀을 먼저(중복 없이 배정), 그다음 아카데미와 해외 팀
+  const intl = typeof REGION_TEAMS !== "undefined" ? Object.values(REGION_TEAMS).flat() : [];
+  return [...new Set([...TEAM_NAMES, ...CLUB_NAMES, ...CLUB_NAMES.map((c) => `${c} 아카데미`), ...intl])];
+}
+function leagueState(year) {
+  const y = Math.max(ROSTER_FIRST_YEAR, year);
+  if (rosterCache[y]) return rosterCache[y];
+  const prev = y > ROSTER_FIRST_YEAR ? leagueState(y - 1) : null;
+  const domestic = new Set([...TEAM_NAMES, ...CLUB_NAMES]);
+  const taken = {}; // 지역(국내는 KR)별로 같은 해에 한 선수가 두 팀에 있지 않게
+  const state = {};
+  for (const team of rosterTeamNames()) {
+    state[team] = {};
+    const region = teamRegion(team) || "KR";
+    const unique = domestic.has(team) || region !== "KR";
+    const pool = poolOf(team);
+    if (!taken[region]) {
+      taken[region] = {};
+      POS_KEYS.forEach((k) => (taken[region][k] = new Set()));
+    }
+    for (const pos of POS_KEYS) {
+      const used = taken[region][pos];
+      const start = !prev && ROSTER_2026[team] ? ROSTER_2026[team][POS_KEYS.indexOf(pos)] : null;
+      if (start && pool[pos].includes(start)) {
+        if (unique) used.add(start);
+        state[team][pos] = start;
+        continue;
+      }
+      const rnd = seededRng(strSeed(`${team}|${y}|${pos}`));
+      const before = prev ? prev[team][pos] : null;
+      const stay = before && rnd() >= ROSTER_TURNOVER && !(unique && used.has(before));
+      let pick = before;
+      if (!stay) {
+        const order = seededShuffle(pool[pos], rnd);
+        pick =
+          order.find((n) => n !== before && !(unique && used.has(n))) ||
+          order.find((n) => !(unique && used.has(n))) ||
+          order[0];
+      }
+      if (unique) used.add(pick);
+      state[team][pos] = pick;
+    }
+  }
+  rosterCache[y] = state;
+  return state;
+}
+// avoid: 이미 다른 팀에서 뛰는 선수(우리 팀 등)는 피해서 보여 줍니다
+function teamRoster(name, year, avoid = []) {
+  const st = leagueState(year);
+  const base = st[name] || st[String(name).replace(/ 아카데미$/, "")];
+  const pool = poolOf(name);
+  const out = {};
+  if (base) Object.assign(out, base);
+  else {
+    POS_KEYS.forEach((pos) => {
+      const rnd = seededRng(strSeed(`${name}|${year}|${pos}`));
+      out[pos] = seededShuffle(pool[pos], rnd)[0];
+    });
+  }
+  POS_KEYS.forEach((pos) => {
+    if (avoid.includes(out[pos])) {
+      const used = Object.values(out);
+      const alt = pool[pos].find((n) => !avoid.includes(n) && !used.includes(n));
+      if (alt) out[pos] = alt;
+    }
+  });
+  return out;
+}
+// 내 팀: 내 포지션 자리에는 내가 들어갑니다
+function myRosterMap() {
+  const map = teamRoster(player.team.name, yearOf(player.day));
+  map[player.position] = player.name;
+  return map;
+}
+
+// ---------- 선수 실력 ----------
+// 대표 선수는 높은 기본 실력, 나머지는 이름에서 정해지는 중간 실력. 해마다 폼이 조금씩 달라집니다. (게임 밸런스용 추정치)
+const STAR_RATING = {
+  패이커: 90, 쵸삐: 90, 구마유지: 89, 제우쓰: 88, 케리어: 88, 캐년: 88, 루러: 87, 기안: 86, 쇼메이크: 85,
+  오노: 84, 데프티: 84, 제크: 84, 피넛츠: 82, 도랑: 80, 와이퍼: 80, 딜라이트: 80, 비디하: 80, 루시드: 80,
+  리핸즈: 78, 스카웃: 78, 베릴: 78, 두로: 78, 쿠즈: 78, 시우: 78, 에이밍: 76, 킹겐: 74, 퍼펙트: 74, 태윤: 74,
+  리치: 74, 윌러: 74, 유칼: 74, 지우: 74, 스폰지: 72, 안딜: 72, 폴루: 70, 루키: 76, 페이즈: 78, 하나비: 70,
+  나이트: 88, 재키러브: 86, 빈이: 86, 엘크: 84, 카나비: 84, 티안: 84, 더쉬: 84, 우지: 82, 플랜드: 82, 쉰: 80,
+  야가오: 80, 샤오후: 80, 카르사: 80, 메이코: 80, 크리스프: 80, 온: 78,
+  캡스: 86, 윈더: 82, 업셋: 82, 잰코스: 80, 미키스: 80, 라르센: 80, 브로큰블레이드: 80, 오도암네: 78, 엘리오야: 78, 힐리: 74,
+  젠슨: 78, 임팩트: 76, 즈벤: 76, 코어제이제이: 76, 비예르센: 76, 블래버: 74, 메테오스: 74, 포벨터: 72, 퀸: 72, 스니키: 72, 인센스: 70, 아프로무: 70,
+};
+function playerRating(name, year) {
+  const base = STAR_RATING[name] ?? 56 + (strSeed(`${name}|base`) % 13); // 56~68
+  const rnd = seededRng(strSeed(`${name}|${year}|form`));
+  return Math.round(base + (rnd() - 0.5) * 6); // 그 해 컨디션 ±3
+}
+const meanOf = (a) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+function rosterInfo(team, year, avoid = []) {
+  const ro = teamRoster(team, year, avoid);
+  const rt = {};
+  POS_KEYS.forEach((k) => (rt[k] = playerRating(ro[k], year)));
+  return { ro, rt, avg: meanOf(POS_KEYS.map((k) => rt[k])) };
+}
+const leagueMeanCache = {};
+function leagueMeanAvg(year) {
+  if (leagueMeanCache[year] === undefined) {
+    leagueMeanCache[year] = meanOf([...TEAM_NAMES, ...CLUB_NAMES].map((t) => rosterInfo(t, year).avg));
+  }
+  return leagueMeanCache[year];
+}
+
+const mateList = () => {
+  const map = myRosterMap();
+  return POS_KEYS.filter((p) => p !== player.position).map((p) => `${POSITIONS[p].label} ${map[p]}`).join(" · ");
+};
+
+// 해가 바뀌어 팀 선수가 달라지면 기록에 남깁니다
+function checkRosterChange() {
+  if (!player || !player.team || player.over) return;
+  const y = yearOf(player.day);
+  if (player.rosterYear === y && player.rosterTeam === player.team.name) return;
+  const sameTeam = player.rosterTeam === player.team.name && player.rosterYear !== undefined && player.rosterYear < y;
+  if (sameTeam) {
+    const a = teamRoster(player.team.name, player.rosterYear);
+    const b = teamRoster(player.team.name, y);
+    const changes = POS_KEYS.filter((k) => k !== player.position && a[k] !== b[k]).map((k) => `${POSITIONS[k].label} ${a[k]}→${b[k]}`);
+    if (changes.length) logNote({ note: `${y}시즌 로스터 변경: ${changes.join(", ")}` });
+    else logNote({ note: `${y}시즌 로스터 유지: 팀원 전원이 재계약했어요.` });
+  }
+  player.rosterYear = y;
+  player.rosterTeam = player.team.name;
+}
 
 // 능력치가 가장 잘 맞는 포지션
 function bestPosition() {
@@ -1302,13 +1593,23 @@ const matchLabel = () => {
   return player.season.phase === "playoff" ? `플레이오프 ${ROUNDS[player.season.round]}` : "리그 경기";
 };
 
+// 진행 중인 정규시즌의 실시간 순위표
+function liveRows() {
+  const se = player.season;
+  const rows = se.teams.map((t) => ({ name: t.name, wins: (se.live && se.live[t.name] ? se.live[t.name].w : 0), l: (se.live && se.live[t.name] ? se.live[t.name].l : 0), me: false }));
+  rows.push({ name: player.team ? player.team.name : "우리 팀", wins: se.w, l: se.l, me: true });
+  rows.sort((a, b) => b.wins - a.wins || a.l - b.l || (a.me ? -1 : b.me ? 1 : 0));
+  return rows;
+}
+
 // 정규시즌 종료: 다른 팀 성적을 정하고 순위를 매깁니다
 function finishRegular() {
   const se = player.season;
   const rows = se.teams.map((t) => {
     const p = sigmoid(t.str / 12); // 평균적인 팀을 상대로 이길 확률
     let wins = 0;
-    for (let i = 0; i < SEASON_GAMES; i++) if (Math.random() < p) wins++;
+    if (se.live && se.live[t.name]) wins = se.live[t.name].w; // 시즌 중 쌓인 성적 그대로
+    else for (let i = 0; i < SEASON_GAMES; i++) if (Math.random() < p) wins++;
     return { name: t.name, wins, me: false, tb: Math.random() };
   });
   const played = Math.max(1, se.w + se.l); // 경기 수가 모자라면 10경기로 환산
@@ -1847,7 +2148,7 @@ function playTourney() {
   const games = [];
   let r;
   while (sc[0] < need && sc[1] < need) {
-    r = simulateMatch(opp.lvl - STAGES.pro.matchLevel);
+    r = simulateMatch(opp.lvl - STAGES.pro.matchLevel, opp.name, 0.6); // 국제대회는 팀 전력(lvl)에 선수 실력을 일부만 더합니다
     sc[r.win ? 0 : 1]++;
     games.push(r.win);
   }
@@ -2214,7 +2515,8 @@ function champEffect() {
   lane += pb * 2;
   fight += pb * 2;
   const mastery = ((player.mastery[c.id] ?? 20) - 30) * 0.15;
-  return { lane: lane * 0.5 + mastery, fight: fight * 0.5 + mastery };
+  const pool = ((player.stats.champPool ?? 25) - 30) * 0.05; // 챔프폭이 넓으면 밴/카운터에 덜 흔들려요
+  return { lane: lane * 0.5 + mastery + pool, fight: fight * 0.5 + mastery + pool };
 }
 
 const who = () => {
@@ -2278,7 +2580,7 @@ function renderChampion() {
     document.getElementById("champ-name").textContent = c.name;
     const fit = fitsPosition(c, player.position);
     document.getElementById("champ-sub").textContent =
-      `숙련도 ${player.mastery[c.id] ?? 20}${fit ? "" : " · 포지션 불일치"}`;
+      `숙련도 ${player.mastery[c.id] ?? 20}${fit ? "" : " · 포지션 불일치"} · 주력(50↑) ${Object.values(player.mastery).filter((v) => v >= POOL_MAIN).length}개 → 챔프폭 ${player.stats.champPool}`;
   } else {
     img.hidden = true;
     document.getElementById("champ-name").textContent = champData
@@ -2470,18 +2772,41 @@ function renderExtra() {
           : `${se.split === "spring" ? "스플릿 2" : "스플릿 3"} 정규시즌 ${se.games}/${SEASON_GAMES}경기 · ${se.w}승 ${se.l}패`;
   }
 
-  const table = se.table || player.lastTable;
+  const liveOn = st.matchLevel && se.phase === "regular" && se.games > 0;
+  // 육성 화면의 시즌 현황 카드
+  const sc = document.getElementById("season-card");
+  if (sc) {
+    sc.hidden = !st.matchLevel || !!over;
+    if (!sc.hidden) {
+      const sp = se.split === "spring" ? "스플릿 2" : "스플릿 3";
+      const rk = liveOn ? liveRows().findIndex((x) => x.me) + 1 : se.phase === "playoff" ? se.rank : 0;
+      const yr = yearOf(player.day);
+      const sh = (t) => t.replace("출전 확정 (시드 ", "확정·시드").replace(")", "").replace("출전권 ", "").replace("프로 단계부터 출전", "프로부터");
+      const line = (k, v) => `<li><span>${k}</span><b>${v}</b></li>`;
+      document.getElementById("season-card-list").innerHTML =
+        line("리그", se.phase === "idle" ? "다음 스플릿 대기" : se.phase === "playoff" ? `플옵 ${ROUNDS[se.round]}` : `${se.games}/${SEASON_GAMES}경기`) +
+        line("순위", rk ? `${rk}위/${se.teams.length + 1}팀` : "-") +
+        line("시즌", `${se.w}승 ${se.l}패`) +
+        line("통산", `${player.record.w}승 ${player.record.l}패`) +
+        line("MSI", sh(intlStatus("msi", yr))) +
+        line("월즈", sh(intlStatus("worlds", yr)));
+      document.getElementById("season-card-hint").textContent = player.stage === "pro"
+        ? "MSI: 스플릿 2 플레이오프 우승(1시드)/준우승(2시드). 월즈: 스플릿 3 플레이오프 진출(3시드), 준우승 2시드, 우승 1시드."
+        : "국제대회(MSI·월즈)는 프로 단계부터 출전할 수 있어요.";
+    }
+  }
+  const table = liveOn ? liveRows() : se.table || player.lastTable;
   const standingsEl = document.getElementById("standings");
   standingsEl.hidden = !(st.matchLevel && table);
   if (!standingsEl.hidden) {
-    document.getElementById("standings-title").textContent = se.table ? "정규시즌 순위" : "지난 시즌 정규시즌 순위";
+    document.getElementById("standings-title").textContent = liveOn ? `현재 순위 (${se.games}/${SEASON_GAMES}경기)` : se.table ? "정규시즌 순위" : "지난 시즌 정규시즌 순위";
     const ol = document.getElementById("standings-list");
     ol.innerHTML = "";
     table.forEach((row, i) => {
       const li = document.createElement("li");
       li.className = (row.me ? "me " : "") + (i === 3 ? "cut" : "");
       li.innerHTML = teamLogo(row.name, 24);
-      li.append(`${i + 1}위 ${row.name} · ${row.wins}승 ${SEASON_GAMES - row.wins}패`);
+      li.append(`${i + 1}위 ${row.name} · ${row.wins}승 ${row.l !== undefined ? row.l : SEASON_GAMES - row.wins}패`);
       ol.append(li);
     });
   }

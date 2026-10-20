@@ -111,6 +111,14 @@
   function paintPlayer() {
     const l = look();
     if (l) drawAvatar($("avatar"), { ...l, blink: blinkOn });
+    const h1 = $("player-name"), p = typeof player !== "undefined" ? player : null;
+    if (h1 && p) {
+      let b = h1.querySelector(".ovr-badge");
+      if (!b) { b = document.createElement("span"); b.className = "ovr-badge"; h1.appendChild(b); }
+      let o = ""; try { o = overall(); } catch {}
+      let dl = 0; try { dl = window.exOvrDelta ? exOvrDelta() : 0; } catch {}
+      b.textContent = `종합 ${o}` + (dl ? (dl > 0 ? ` ▲${dl}` : ` ▼${-dl}`) : "");
+    }
   }
   function paintStart() {
     const sel = document.querySelector('input[name="position"]:checked');
@@ -140,8 +148,42 @@
     el.innerHTML = first.innerHTML;
   }
 
+  // 행동을 하면 결과를 잠깐 크게 보여줍니다
+  let lastLogKey = null, actToast;
+  function announceAction() {
+    const first = $("log") && $("log").firstElementChild;
+    if (!first) return;
+    const key = first.textContent;
+    if (lastLogKey === null) { lastLogKey = key; return; } // 처음 불러온 값은 알리지 않음
+    if (key === lastLogKey) return;
+    lastLogKey = key;
+    let t = $("act-toast");
+    if (!t) { t = document.createElement("div"); t.id = "act-toast"; t.className = "px"; $("play-screen").appendChild(t); }
+    t.innerHTML = `<b>✔ 완료</b> ${first.innerHTML}`;
+    t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+    clearTimeout(actToast);
+    actToast = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+
+  // 패치가 바뀌면 육성 화면에서 한 번 보여줍니다
+  function paintPatchNote() {
+    const p = typeof player !== "undefined" ? player : null;
+    const box = $("patch-note");
+    if (!p || !box || !p.patch || ($("patch") && $("patch").hidden)) { if (box) box.hidden = true; return; }
+    if (p.patchSeen === undefined) { p.patchSeen = p.patch.no; return; } // 기존 저장 데이터는 한 번 건너뜀
+    if (p.patchSeen === p.patch.no) { box.hidden = true; return; }
+    $("pn-title").textContent = "새 패치 적용! " + ($("patch-title") ? $("patch-title").textContent : "");
+    $("pn-list").innerHTML = $("patch-list") ? $("patch-list").innerHTML : "";
+    box.hidden = false;
+  }
+  const pnOk = $("pn-ok");
+  if (pnOk) pnOk.addEventListener("click", () => {
+    if (typeof player !== "undefined" && player.patch) { player.patchSeen = player.patch.no; try { saveGame(); } catch {} }
+    $("patch-note").hidden = true;
+  });
+
   function sync() {
-    try { paintPlayer(); paintChips(); paintLastLog(); } catch (e) { console.warn("ui sync", e); }
+    try { paintPlayer(); paintChips(); paintLastLog(); announceAction(); paintPatchNote(); } catch (e) { console.warn("ui sync", e); }
   }
 
   // ---------- 능력치 아이콘 ----------
@@ -173,7 +215,7 @@
   }
 
   // ---------- 하단 탭 = 페이지 넘기기 ----------
-  const ORDER = ["home", "match", "player", "team", "log"];
+  const ORDER = ["home", "status", "match", "player", "team", "log"];
   const tabs = [...document.querySelectorAll("#tabbar button")];
   let current = "home";
   function openTab(name) {
